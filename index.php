@@ -1,32 +1,50 @@
 <?php
-// --- 1. ส่วนเชื่อมต่อฐานข้อมูล (PHP) ---
-$host = "mariadb-c4ncq5"; // *** ถ้า Deploy บน Dokploy ให้เปลี่ยนเป็นชื่อ Service ของ MariaDB ***
-$username = "root";
-$password = "Suha_2006";
-$dbname = "trees_db";
+// 1. เชื่อมต่อฐานข้อมูล
+$host = getenv('DB_HOST');
+$user = getenv('DB_USER');
+$pass = getenv('DB_PASS');
+$db   = getenv('DB_NAME');
 
-// สร้างการเชื่อมต่อ
-$conn = new mysqli($host, $username, $password);
+$conn = new mysqli($host, $user, $pass, $db);
 
-// ตรวจสอบการเชื่อมต่อ
 if ($conn->connect_error) {
-    // กรณีเชื่อมต่อไม่ได้ ให้แสดง Error สั้นๆ (หรือจะปล่อยผ่านเพื่อให้ UI ยังทำงานได้)
-    $db_status = "Connection Failed: " . $conn->connect_error;
-} else {
-    // 2. สร้าง Database และ Table อัตโนมัติ (ตามโจทย์ข้อ 3)
-    $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
-    $conn->select_db($dbname);
-    
-    $sql_create_table = "CREATE TABLE IF NOT EXISTS bst_nodes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        node_value INT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )";
-    $conn->query($sql_create_table);
-    $db_status = "Connected & MariaDB Ready";
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// 2. เมื่อกด "ปลูก Node"
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_insert'])) {
+    $val = intval($_POST['common_val']);
+    if (!empty($_POST['common_val']) || $_POST['common_val'] === "0") {
+        $conn->query("INSERT INTO sakura_nodes (node_value) VALUES ('$val')");
+    }
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
+}
+
+// 3. เมื่อกด "ล้างสวน" (ถ้ามีเลขในกล่องเดียวกันจะลบเฉพาะเลขนั้น)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_reset'])) {
+    $target_val = $_POST['common_val'];
+
+    if (!empty($target_val) || $target_val === "0") {
+        $val_to_del = intval($target_val);
+        $conn->query("DELETE FROM sakura_nodes WHERE node_value = '$val_to_del' LIMIT 1");
+    } else {
+        $conn->query("DELETE FROM sakura_nodes");
+        $conn->query("ALTER TABLE sakura_nodes AUTO_INCREMENT = 1");
+    }
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
+}
+
+// 4. ดึงข้อมูลแสดงผล
+$db_nodes = [];
+$res = $conn->query("SELECT node_value FROM sakura_nodes ORDER BY id ASC");
+if ($res) {
+    while ($row = $res->fetch_assoc()) {
+        $db_nodes[] = (int)$row['node_value'];
+    }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -315,3 +333,4 @@ if ($conn->connect_error) {
     </script>
 </body>
 </html>
+

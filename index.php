@@ -24,16 +24,16 @@ if ($conn->connect_error) {
     $db_status = "✅ Connected to MariaDB ($host)";
 }
 
-// 3. ส่วนของการจัดการข้อมูล (Add/Delete) ผ่าน PHP เพื่อลงฐานข้อมูล
+// 3. ส่วนของการจัดการข้อมูล (Add/Delete) - แก้ไขบั๊กเลข 0 โดยการเช็คค่าว่าง
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['add_val'])) {
+    if (isset($_POST['add_val']) && $_POST['add_val'] !== "") {
         $val = (int)$_POST['add_val'];
         $conn->query("INSERT INTO bst_nodes (node_value) VALUES ($val)");
-    } elseif (isset($_POST['del_val'])) {
+    } elseif (isset($_POST['del_val']) && $_POST['del_val'] !== "") {
         $val = (int)$_POST['del_val'];
         $conn->query("DELETE FROM bst_nodes WHERE node_value = $val");
     }
-    header("Location: " . $_SERVER['PHP_SELF']); // Refresh เพื่อโหลดข้อมูลใหม่
+    header("Location: " . $_SERVER['PHP_SELF']); 
     exit();
 }
 
@@ -45,7 +45,8 @@ if ($res && $res->num_rows > 0) {
         $db_nodes[] = (int)$row['node_value'];
     }
 } else {
-    $db_nodes = [50, 30, 70, 20, 40, 60, 80]; // ค่าเริ่มต้นถ้า DB ว่าง
+    // ถ้า DB ว่าง ให้แสดงตัวอย่างตั้งต้น
+    $db_nodes = [50, 30, 70, 20, 40, 60, 80]; 
 }
 ?>
 
@@ -114,6 +115,7 @@ if ($res && $res->num_rows > 0) {
         .btn-action { background: var(--primary); color: #000; }
         .btn-del { background: #ef4444; color: white; }
         .db-badge { font-size: 12px; color: #10b981; margin-bottom: 10px; display: block; }
+        
         #galaxy-container {
             position: relative;
             width: 100%;
@@ -166,6 +168,7 @@ if ($res && $res->num_rows > 0) {
             <input type="hidden" name="add_val" id="add_val">
             <input type="hidden" name="del_val" id="del_val">
         </form>
+
         <input type="number" id="valInput" placeholder="Enter Number">
         <br><br>
         <button class="btn-action" onclick="dbAction('add')">Add Node</button>
@@ -210,17 +213,26 @@ if ($res && $res->num_rows > 0) {
         const container = document.getElementById('galaxy-container');
         let nodeElements = {};
 
-        // ฟังก์ชันส่งค่าไป PHP เพื่อบันทึกลง DB
+        // ฟังก์ชันส่งค่าไป PHP - แก้ไขบั๊กเพื่อป้องกันเลข 0
         function dbAction(type) {
-            const val = document.getElementById('valInput').value;
-            if(!val) return;
+            const input = document.getElementById('valInput');
+            const val = input.value;
+
+            // เช็คว่ากรอกตัวเลขหรือยัง
+            if (val === "") {
+                alert("กรุณากรอกตัวเลขก่อนครับ");
+                return;
+            }
+
             if(type === 'add') document.getElementById('add_val').value = val;
             if(type === 'del') document.getElementById('del_val').value = val;
+            
             document.getElementById('dbForm').submit();
         }
 
         function runFind() {
             const val = parseInt(document.getElementById('valInput').value);
+            if(isNaN(val)) return;
             const found = bst.search(bst.root, val);
             if(found) {
                 highlight(val);
@@ -295,7 +307,7 @@ if ($res && $res->num_rows > 0) {
             }
         }
 
-        // --- ส่วนสำคัญ: โหลดข้อมูลจาก PHP/MariaDB ---
+        // โหลดข้อมูลจาก MariaDB
         const initialData = <?php echo json_encode($db_nodes); ?>;
         initialData.forEach(d => bst.insert(d));
         

@@ -1,7 +1,7 @@
 <?php
 // --- 1. ส่วนเชื่อมต่อฐานข้อมูล ---
-$host     = getenv('DB_HOST') ?: "mariadb-c4ncq5"; 
-$username = getenv('DB_USER') ?: "root";
+$host     = getenv('DB_HOST') ?: "suha-mariadb-edo8du"; 
+$username = getenv('DB_USER') ?: "suha";
 $password = getenv('DB_PASS') ?: "Suha_2006";
 $dbname   = getenv('DB_NAME') ?: "trees_db";
 
@@ -316,3 +316,4 @@ if ($res && $res->num_rows > 0) {
     </script>
 </body>
 </html>
+
